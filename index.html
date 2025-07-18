@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat com IA - Vindi</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --bg-color: #f8fafc;
+            --text-color: #1e293b;
+            --user-bg: #e0e7ff;
+            --bot-bg: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-header {
+            text-align: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--user-bg);
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background-color: var(--bot-bg);
+            box-shadow: var(--shadow);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+            padding: 15px 0;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 15px;
+        }
+
+        #chat-input {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 24px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #chat-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        #send-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 0 24px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        #send-button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            padding: 8px 16px;
+            background-color: var(--bot-bg);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            margin-bottom: 12px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #94a3b8;
+            border-radius: 50%;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        @media (max-width: 600px) {
+            .chat-container {
+                padding: 10px;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            #chat-input {
+                padding: 10px 14px;
+            }
+            
+            #send-button {
+                padding: 0 18px;
+            }
+        }
+                .markdown-body {
+            background-color: transparent !important;
+            font-size: 14px;
+            padding: 0 !important;
+        }
+        
+        .markdown-body ul, 
+        .markdown-body ol {
+            padding-left: 20px;
+            margin: 8px 0;
+        }
+        
+        .markdown-body pre {
+            background-color: rgba(0,0,0,0.05);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        
+        .markdown-body code {
+            background-color: rgba(0,0,0,0.05);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .message a {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Chat com IA</h1>
+            <!-- <p>Session ID: <span id="session-id"></span></p> -->
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+            <div class="typing-indicator" id="typing-indicator">
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off">
+            <button id="send-button">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        let isSending = false;
+        // Gerar um sessionID único ao carregar a página
+        const sessionID = generateSessionID();
+        // document.getElementById('session-id').textContent = sessionID;
+        
+        // Elementos do DOM
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const typingIndicator = document.getElementById('typing-indicator');
+        
+        // Função para gerar sessionID
+        function generateSessionID() {
+            return 'session-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+        
+        // Função para adicionar mensagem ao chat
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+            
+            // Converter Markdown para HTML
+            const htmlContent = marked.parse(content || '');
+            
+            // Criar container Markdown
+            const markdownContainer = document.createElement('div');
+            markdownContainer.classList.add('markdown-body');
+            markdownContainer.innerHTML = htmlContent;
+            
+            messageDiv.appendChild(markdownContainer);
+            chatMessages.insertBefore(messageDiv, typingIndicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Tratar links para abrir em nova aba
+            markdownContainer.querySelectorAll('a').forEach(link => {
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener noreferrer');
+            });
+        }
+        
+        // Função para mostrar/ocultar indicador de digitação
+        function showTypingIndicator(show) {
+            typingIndicator.style.display = show ? 'flex' : 'none';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        //
+        async function sendMessage() {
+            if (isSending) return;  // Impede envios simultâneos
+            
+            const message = chatInput.value.trim();
+            if (!message) return;
+        
+            // Desabilita controles
+            isSending = true;
+            sendButton.disabled = true;
+            chatInput.disabled = true;
+            
+            addMessage(message, true);
+            showTypingIndicator(true);
+            
+            try {
+                const response = await fetch('https://api.muvecom.com.br/v1/vindi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        session_id: sessionID, 
+                        message: message
+                    })
+                });
+        
+                const responseText = await response.text();
+                let respostaIA;
+        
+                try {
+                    const jsonData = JSON.parse(responseText);
+                    respostaIA = jsonData[0]?.output || jsonData.message || jsonData.response || responseText;
+                } catch {
+                    respostaIA = responseText;
+                }
+        
+                addMessage(respostaIA, false);
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                addMessage(`❌ Erro: ${error.message}`, false);
+            } finally {
+                // Reabilita controles
+                chatInput.value = '';
+                chatInput.disabled = false;
+                sendButton.disabled = false;
+                isSending = false;
+                showTypingIndicator(false);
+                chatInput.focus();  // Volta o foco para o input
+            }
+        }
+        
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !isSending) {  // Só envia se não estiver processando
+                sendMessage();
+            }
+        });
+        
+        // Focar no input ao carregar
+        chatInput.focus();
+    </script>
+</body>
+</html>
