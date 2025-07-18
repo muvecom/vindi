@@ -195,6 +195,51 @@
             color: var(--primary-color);
             text-decoration: underline;
         }
+        
+        .file-message {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: #e0f2fe;
+            border-radius: 8px;
+            color: #0369a1;
+            font-weight: 500;
+        }
+        
+        .file-message::before {
+            content: "📄";
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        #document-button {
+            background-color: #38bdf8;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 0 16px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #document-button:hover {
+            background-color: #0ea5e9;
+        }
+        
+        #document-button::before {
+            content: "📎";
+            margin-right: 6px;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -216,13 +261,17 @@
         </div>
         
         <div class="chat-input-container">
-            <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off">
-            <button id="send-button">Enviar</button>
+            <div class="input-container">
+                <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off">
+                <button id="document-button" title="Enviar documento"></button>
+                <button id="send-button">Enviar</button>
+            </div>
         </div>
     </div>
 
     <script>
         let isSending = false;
+        let simulatedDocument = "documentos.pdf"; // Valor padrão para simulação
         // Gerar um sessionID único ao carregar a página
         const sessionID = generateSessionID();
         // document.getElementById('session-id').textContent = sessionID;
@@ -269,29 +318,55 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
+        function sendDocument() {
+            if (isSending) return;
+        
+            // Cria a mensagem de documento visual
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'user-message');
+            
+            const fileDiv = document.createElement('div');
+            fileDiv.classList.add('file-message');
+            fileDiv.textContent = simulatedDocument; // Sempre usa "documentos.pdf" na simulação
+            
+            messageDiv.appendChild(fileDiv);
+            chatMessages.insertBefore(messageDiv, typingIndicator);
+            
+            // Chama a função de envio normalmente (que já envia o simulatedDocument)
+            sendMessage();
+        }
+
         //
         async function sendMessage() {
-            if (isSending) return;  // Impede envios simultâneos
-            
-            const message = chatInput.value.trim();
-            if (!message) return;
+            if (isSending) return;
         
-            // Desabilita controles
+            const message = chatInput.value.trim();
+            if (!message && !simulatedDocument) return; // Só envia se houver texto OU documento
+        
             isSending = true;
             sendButton.disabled = true;
             chatInput.disabled = true;
-            
-            addMessage(message, true);
+            document.getElementById('document-button').disabled = true;
+        
+            // Envia a mensagem do usuário (se houver)
+            if (message) {
+                addMessage(message, true);
+            }
+        
             showTypingIndicator(true);
-            
+        
             try {
+                // Payload sempre envia o documento (simulado ou real)
+                const payload = { 
+                    session_id: sessionID,
+                    message: message || "[Documento enviado]", // Mensagem opcional
+                    document: simulatedDocument // Sempre envia o documento
+                };
+        
                 const response = await fetch('https://api.muvecom.com.br/v1/vindi', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        session_id: sessionID, 
-                        message: message
-                    })
+                    body: JSON.stringify(payload)
                 });
         
                 const responseText = await response.text();
@@ -305,22 +380,23 @@
                 }
         
                 addMessage(respostaIA, false);
-                
+        
             } catch (error) {
                 console.error('Erro:', error);
                 addMessage(`❌ Erro: ${error.message}`, false);
             } finally {
-                // Reabilita controles
                 chatInput.value = '';
                 chatInput.disabled = false;
                 sendButton.disabled = false;
+                document.getElementById('document-button').disabled = false;
                 isSending = false;
                 showTypingIndicator(false);
-                chatInput.focus();  // Volta o foco para o input
+                chatInput.focus();
             }
         }
         
         // Event listeners
+        document.getElementById('document-button').addEventListener('click', sendDocument);
         sendButton.addEventListener('click', sendMessage);
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !isSending) {  // Só envia se não estiver processando
